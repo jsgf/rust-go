@@ -2,7 +2,6 @@ extern crate go;
 
 use std::fs::File;
 use std::io::Read;
-use std::str;
 use std::env;
 
 use go::sgf;

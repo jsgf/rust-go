@@ -40,6 +40,8 @@ impl Property {
             Ok(self.raw.iter().map(|r| Value::from(r.clone())).collect())
         }
     }
+
+    pub fn len(&self) -> usize { self.raw.len() }
 }
 
 fn fold_res<R, T, E>(vr: R) -> result::Result<Vec<T>, E>
