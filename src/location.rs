@@ -7,6 +7,10 @@ impl Location {
     }
 }
 
+impl AsRef<Location> for Location {
+    fn as_ref(&self) -> &Self { self }
+}
+
 impl Location {
     #[inline] pub fn row(&self) -> u32 { self.row }
     #[inline] pub fn col(&self) -> u32 { self.col }

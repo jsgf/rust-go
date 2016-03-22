@@ -38,7 +38,10 @@ impl Group {
         GroupIterator::new(s, colour).collect()
     }
 
-    pub fn has(&self, stone: Stone, loc: &Location) -> bool {
+    pub fn has<L>(&self, stone: Stone, loc: L) -> bool
+        where L: AsRef<Location>
+    {
+        let loc = loc.as_ref();
         self.colour == stone && self.group.contains(loc)
     }
 
@@ -48,19 +51,29 @@ impl Group {
         self.group.iter()
     }
 
-    pub fn adjacent(&self, stone: Stone, loc: &Location) -> bool {
+    pub fn adjacent<L>(&self, stone: Stone, loc: L) -> bool
+        where L: AsRef<Location>
+    {
+        let loc = loc.as_ref();
         self.colour == stone && !self.has(stone, loc) &&
         loc.neighbours().any(|l| self.has(stone, &l))
     }
 
-    pub fn groupadjacent(&self, other: &Group) -> bool {
+    pub fn groupadjacent<G>(&self, other: G) -> bool
+        where G: AsRef<Group>
+    {
+        let other = other.as_ref();
         assert!(self.group.is_disjoint(&other.group));
 
         self.colour == other.colour &&
         other.group.iter().any(|l| self.adjacent(other.colour, l))
     }
 
-    pub fn merge(&self, other: &Group) -> Option<Group> {
+    pub fn merge<G>(&self, other: G) -> Option<Group>
+        where G: AsRef<Group>
+    {
+        let other = other.as_ref();
+
         if self.colour == other.colour {
             Some(Group {
                 colour: self.colour,
@@ -70,6 +83,14 @@ impl Group {
             None
         }
     }
+}
+
+impl AsRef<Group> for Group {
+    fn as_ref(&self) -> &Self { self }
+}
+
+impl AsRef<HashSet<Location>> for Group {
+    fn as_ref(&self) -> &HashSet<Location> { &self.group }
 }
 
 pub struct GroupIterator {

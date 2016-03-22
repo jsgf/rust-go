@@ -28,23 +28,35 @@ impl Board {
 
     pub fn size(&self) -> u32 { self.size }
 
-    pub fn validloc(&self, loc: &Location) -> bool {
+    pub fn validloc<L>(&self, loc: L) -> bool
+        where L: AsRef<Location>
+    {
+        let loc = loc.as_ref();
         loc.row() < self.size && loc.col() < self.size
     }
 
-    pub fn get(&self, loc: &Location) -> Option<Stone> {
-        self.points.get(loc).map(|s| *s)
+    pub fn get<L>(&self, loc: L) -> Option<Stone>
+        where L: AsRef<Location>
+    {
+        self.points.get(loc.as_ref()).map(|s| *s)
     }
 
-    pub fn add(&mut self, loc: &Location, s: Stone) -> Option<Stone> {
+    pub fn add<L, S>(&mut self, loc: L, s: S) -> Option<Stone>
+        where L: AsRef<Location>, S: AsRef<Stone>
+    {
+        let loc = loc.as_ref();
+        let s = s.as_ref();
         assert!(self.validloc(loc));
-        self.points.insert(*loc, s)
+        self.points.insert(*loc, *s)
     }
 
     // return locations of colour `s` who are part of groups whose last liberty is `loc`
-    fn killed<Out>(&self, s: Stone, loc: &Location) -> Out
-        where Out: FromIterator<Location>
+    fn killed<L, S, Out>(&self, s: S, loc: L) -> Out
+        where L: AsRef<Location>, S: AsRef<Stone>, Out: FromIterator<Location>
     {
+        let loc = loc.as_ref();
+        let s = *s.as_ref();
+
         let libset: HashSet<Location> = iter::once(loc).map(|l| *l).collect();
 
         GroupIterator::new(self.points.iter().map(|(l, s)| (*l, *s)), s)
@@ -53,7 +65,12 @@ impl Board {
                 .collect()
     }
 
-    pub fn play(&mut self, loc: &Location, s: Stone) -> bool {
+    pub fn play<L, S>(&mut self, loc: L, s: S) -> bool
+        where L: AsRef<Location>, S: AsRef<Stone>
+    {
+        let loc = loc.as_ref();
+        let s = *s.as_ref();
+
         // valid play is:
         // 1. location is in bounds
         // 2. location is Empty
@@ -64,14 +81,14 @@ impl Board {
         if self.get(loc).is_some() { return false }
 
         // find opposite coloured stones killed and remove them
-        let dead = self.killed::<Vec<_>>(!s, loc);
+        let dead: Vec<_> = self.killed(!s, loc);
         for d in dead {
             let ds = self.points.remove(&d);
             assert_eq!(ds, Some(!s));
         }
 
         // see if this is a suicide move
-        let dead = self.killed::<Vec<_>>(s, loc);
+        let dead: Vec<_> = self.killed(s, loc);
         if dead.is_empty() {
             let ps = self.add(loc, s);
             assert_eq!(ps, None);

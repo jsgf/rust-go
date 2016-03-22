@@ -21,3 +21,7 @@ impl<'a> Not for &'a Stone {
     type Output = Stone;
     fn not(self) -> Self::Output { !*self }
 }
+
+impl AsRef<Stone> for Stone {
+    fn as_ref(&self) -> &Self { self }
+}
