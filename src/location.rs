@@ -1,8 +1,8 @@
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub struct Location { row: u32, col: u32 }
+pub struct Location { row: usize, col: usize }
 
 impl Location {
-    pub fn new(col: u32, row: u32) -> Location {
+    pub fn new(col: usize, row: usize) -> Location {
         Location { row: row, col: col }
     }
 }
@@ -12,34 +12,34 @@ impl AsRef<Location> for Location {
 }
 
 impl Location {
-    #[inline] pub fn row(&self) -> u32 { self.row }
-    #[inline] pub fn col(&self) -> u32 { self.col }
+    #[inline] pub fn row(&self) -> usize { self.row }
+    #[inline] pub fn col(&self) -> usize { self.col }
 
     pub fn neighbours(&self) -> Neighbours {
         Neighbours::new(self)
     }
 }
 
-impl From<(u32, u32)> for Location {
-    fn from((c, r): (u32, u32)) -> Self {
+impl From<(usize, usize)> for Location {
+    fn from((c, r): (usize, usize)) -> Self {
         Location::new(c, r)
     }
 }
 
-impl<'a> From<&'a (u32, u32)> for Location {
-    fn from(&(c, r): &'a (u32, u32)) -> Self {
+impl<'a> From<&'a (usize, usize)> for Location {
+    fn from(&(c, r): &'a (usize, usize)) -> Self {
         Location::new(c, r)
     }
 }
 
 pub struct AllLocations {
-    size: u32,
-    r: u32,
-    c: u32,
+    size: usize,
+    r: usize,
+    c: usize,
 }
 
 impl AllLocations {
-    pub fn new(size: u32) -> Self {
+    pub fn new(size: usize) -> Self {
         AllLocations {
             size: size, r: 0, c: 0,
         }
@@ -69,7 +69,7 @@ impl Iterator for AllLocations {
 
 pub struct Neighbours {
     loc: Location,
-    n: u32,
+    n: usize,
 }
 
 impl Neighbours {

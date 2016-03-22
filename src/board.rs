@@ -13,20 +13,20 @@ pub struct Point(Location, Option<Stone>);
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Board {
-    size: u32,
+    size: usize,
     points: HashMap<Location, Stone>,
 }
 
 impl Board {
     pub fn new() -> Board { Board::new_with_size(19) }
-    pub fn new_with_size(size: u32) -> Board {
+    pub fn new_with_size(size: usize) -> Board {
         Board {
             size: size,
             points: HashMap::new(),
         }
     }
 
-    pub fn size(&self) -> u32 { self.size }
+    pub fn size(&self) -> usize { self.size }
 
     pub fn validloc<L>(&self, loc: L) -> bool
         where L: AsRef<Location>
