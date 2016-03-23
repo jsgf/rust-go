@@ -60,11 +60,11 @@ impl Board {
         let loc = loc.as_ref();
         let s = *s.as_ref();
 
-        let libset: HashSet<Location> = iter::once(loc).map(|l| *l).collect();
+        let libset: HashSet<Location> = iter::once(loc).cloned().collect();
 
         GroupIterator::new(self.points.iter().map(|(l, s)| (*l, *s)), s)
                 .filter(|g| self.liberties::<HashSet<_>>(g) == libset)
-                .flat_map(|g| g.locations().map(|l| *l).collect::<Vec<_>>())
+                .flat_map(|g| g.locations().cloned().collect::<Vec<_>>())
                 .collect()
     }
 
@@ -127,7 +127,7 @@ impl Board {
     {
         group.neighbours().iter()
             .filter(|l| self.get(l).is_none())
-            .map(|l| *l)
+            .cloned()
             .collect()
     }
 }

@@ -27,7 +27,7 @@ impl Group {
             .flat_map(|l| l.neighbours())
             .collect::<HashSet<Location>>()
             .difference(&self.group)
-            .map(|l| *l)
+            .cloned()
             .collect()
     }
 
@@ -77,7 +77,7 @@ impl Group {
         if self.colour == other.colour {
             Some(Group {
                 colour: self.colour,
-                group: self.group.union(&other.group).map(|l| *l).collect()
+                group: self.group.union(&other.group).cloned().collect()
             })
         } else {
             None
@@ -119,7 +119,7 @@ impl Iterator for GroupIterator {
         if self.stones.is_empty() { return None }
         // init group with first stone
         let mut g: HashSet<Location> =
-            self.stones.iter().take(1).map(|l| *l).collect();
+            self.stones.iter().take(1).cloned().collect();
 
         loop {
             // remove group from candidates
@@ -129,7 +129,7 @@ impl Iterator for GroupIterator {
             let n: HashSet<Location> =
                 g.iter()
                     .flat_map(|l| l.neighbours())
-                    .collect::<HashSet<Location>>().intersection(&self.stones).map(|l| *l)
+                    .collect::<HashSet<Location>>().intersection(&self.stones).cloned()
                     .collect();
 
             if n.is_empty() { break }
@@ -172,7 +172,7 @@ mod tests {
             .iter().map(Location::from).collect();
 
         assert_eq!(gs[0].colour(), Black);
-        assert_eq!(gs[0].locations().map(|l| *l).collect::<HashSet<_>>(), expect);
+        assert_eq!(gs[0].locations().cloned().collect::<HashSet<_>>(), expect);
     }
 
     #[test] fn neighbours() {
@@ -186,7 +186,7 @@ mod tests {
 
         let neighbours = gs[0].neighbours();
 
-        assert!(neighbours.is_disjoint(&gs[0].locations().map(|l| *l).collect()));
+        assert!(neighbours.is_disjoint(&gs[0].locations().cloned().collect()));
 
         let expect = [
             (0,1), (0,2), (1,0), (1,3), (2,1), (2,4), (3,2), (3,3)
