@@ -255,15 +255,17 @@ mod tests {
         assert!(b.play(Location::new(3,2), White));
         assert!(b.play(Location::new(0,0), Black)); // capture
 
+
+        println!("Board:\n{}", b);
+
         let bstr = format!("{}", b);
         assert_eq!(bstr, "\
 . . . . . \n\
-. . . . . \n\
-# #   . . \n\
+. . . O . \n\
+# # . O . \n\
 . . # . . \n\
 # . # . . \n\
 ");
 
-        println!("Board:\n{}", b)
     }
 }
