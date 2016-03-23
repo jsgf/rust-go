@@ -2,6 +2,7 @@
 name = "go"
 version = "0.1.0"
 authors = ["Jeremy Fitzhardinge <jeremy@goop.org>"]
+readme = "README.md"
 
 [[bin]]
 name = "sgfreader"
