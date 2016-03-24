@@ -91,6 +91,8 @@ impl Board {
         }
 
         // see if this is a suicide move
+        // XXX rule check to see if suicide allowed
+        // XXX Assume suicide only possible iff no opposite stones killed?
         let dead: Vec<_> = self.killed(s, loc);
         if dead.is_empty() {
             let ps = self.add(loc, s);
@@ -127,20 +129,20 @@ impl Board {
     {
         group.neighbours().iter()
             .filter(|l| self.get(l).is_none())
-            .cloned()
-            .collect()
+            .cloned().collect()
     }
 }
 
 impl FromStr for Board {
     type Err = ();
+
     fn from_str(s: &str) -> Result<Board, ()> {
         // Given a single string containing one row per line:
         //    . . . # . O
         //    . . . # # O
         // generate a Board containing that position.
         //
-        // The board is always upper-left. The dimensions are max(width,height)
+        // The board is always upper-left. The dimensions are max(width, height)
         // of the text rows.
         //
         // In each row, spaces are ignored, '.' is a blank space, # is black,
@@ -151,10 +153,12 @@ impl FromStr for Board {
                 .map(|l| l.chars()
                             .filter_map(|c|
                                 match c {
-                                    '.'         => Some(None),
-                                    '#' | 'X'   => Some(Some(Stone::Black)),
-                                    'O' | 'o'   => Some(Some(Stone::White)),
-                                    _ => None,
+                                    '#' | 'X' | '⚈' | '⚉' =>
+                                        Some(Some(Stone::Black)),
+                                    'O' | 'o' | '⚆' | '⚇' =>
+                                        Some(Some(Stone::White)),
+                                    '.' => Some(None),
+                                    _   => None,
                                 })
                             .collect())
                 .collect();

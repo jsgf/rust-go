@@ -1,3 +1,6 @@
+use std::str::FromStr;
+use std::fmt::{self, Display};
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Location { row: usize, col: usize }
 
@@ -29,6 +32,41 @@ impl From<(usize, usize)> for Location {
 impl<'a> From<&'a (usize, usize)> for Location {
     fn from(&(c, r): &'a (usize, usize)) -> Self {
         Location::new(c, r)
+    }
+}
+
+impl Display for Location {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{}{}", (self.col as u8 + 'A' as u8) as char, self.row + 1)
+    }
+}
+
+impl FromStr for Location {
+    type Err = &'static str;
+
+    // parse locations in the form "B5", "A17"
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.len() != 2 && s.len() != 3 { return Err("bad len") }
+
+        let mut si = s.chars();
+
+        let col = match si.next() {
+            Some(c@'A'...'S') | Some(c@'a'...'s') =>
+                c.to_lowercase().next().unwrap() as usize - 'a' as usize,
+            _ => return Err("bad col"),
+        };
+
+        let mut row = match si.next() {
+            Some(c@'1'...'9') => c as usize - '0' as usize,
+            _ => return Err("bad row 1"),
+        };
+        row = match si.next() {
+            None => row,
+            Some(c@'1'...'9') => (row * 10) + (c as usize - '0' as usize),
+            _ => return Err("bad row 2"),
+        };
+
+        Ok(Location::new(col, row - 1))
     }
 }
 
@@ -100,6 +138,7 @@ impl Iterator for Neighbours {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
     use super::{Location, AllLocations};
 
     #[test] fn allloc() {
@@ -118,5 +157,17 @@ mod tests {
         assert_eq!(Location::new(1,1).neighbours().collect::<Vec<_>>(),
                     vec![Location::new(0,1), Location::new(2,1),
                          Location::new(1,0), Location::new(1,2)]);
+    }
+
+    #[test] fn parseloc() {
+        assert_eq!(FromStr::from_str("a1"), Ok(Location::new(0, 0)));
+        assert_eq!(FromStr::from_str("s1"), Ok(Location::new(18, 0)));
+        assert_eq!(FromStr::from_str("a19"), Ok(Location::new(0, 18)));
+        assert_eq!(FromStr::from_str("s19"), Ok(Location::new(18, 18)));
+
+        assert_eq!(FromStr::from_str("A1"), Ok(Location::new(0, 0)));
+        assert_eq!(FromStr::from_str("S1"), Ok(Location::new(18, 0)));
+        assert_eq!(FromStr::from_str("A19"), Ok(Location::new(0, 18)));
+        assert_eq!(FromStr::from_str("S19"), Ok(Location::new(18, 18)));
     }
 }
