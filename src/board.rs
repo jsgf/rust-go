@@ -8,6 +8,7 @@ use std::fmt::{self, Display};
 use stone::Stone;
 use group::{Group, GroupIterator};
 use location::{Location, AllLocations};
+use one::One;
 
 pub type PointSet = HashSet<Location>;
 
@@ -90,20 +91,26 @@ impl Board {
             assert_eq!(ds, Some(!s));
         }
 
-        // see if this is a suicide move
-        // XXX rule check to see if suicide allowed
-        // XXX Assume suicide only possible iff no opposite stones killed?
-        let dead: Vec<_> = self.killed(s, loc);
-        if dead.is_empty() {
-            let ps = self.add(loc, s);
-            assert_eq!(ps, None);
-        } else {
-            for d in dead {
-                let ds = self.points.remove(&d);
-                assert_eq!(ds, Some(s));
-            }
+        // place stone, then see if that was a suicide move
+        let ps = self.add(loc, s);
+        assert_eq!(ps, None);
+
+        let dead: One<_> =
+            GroupIterator::new(self.points.iter().map(|(l, s)| (*l, *s)), s)
+                .filter(|g| g.contains(loc))
+                .filter(|g| self.liberties::<One<_>>(g).is_empty())
+                .collect();
+
+        match dead.into() {
+            Some(dead) => {
+                for d in dead.locations() {
+                    let ds = self.points.remove(&d);
+                    assert_eq!(ds, Some(s));
+                };
+                false
+            },
+            None => true,
         }
-        true
     }
 
     pub fn remove(&mut self, loc: &Location) -> Option<Stone> {
@@ -128,6 +135,7 @@ impl Board {
         where Out: FromIterator<Location>
     {
         group.neighbours().iter()
+            .filter(|l| self.validloc(l))
             .filter(|l| self.get(l).is_none())
             .cloned().collect()
     }

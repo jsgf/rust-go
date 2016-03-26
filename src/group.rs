@@ -60,6 +60,14 @@ impl Group {
         loc.neighbours().any(|l| self.has(stone, &l))
     }
 
+    pub fn contains<L>(&self, loc: L) -> bool
+        where L: AsRef<Location>
+    {
+        let loc = loc.as_ref();
+
+        self.group.contains(loc)
+    }
+
     pub fn groupadjacent<G>(&self, other: G) -> bool
         where G: AsRef<Group>
     {

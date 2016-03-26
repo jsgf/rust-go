@@ -6,3 +6,5 @@ pub mod stone;
 pub mod location;
 pub mod group;
 pub mod sgf;
+
+mod one;
