@@ -39,7 +39,7 @@ impl Property {
         if let Some(parse) = DETAILS.get(&self.id[..]).map(|d| d.4) {
             fold_res(self.raw.iter().map(|r| parse(r)))
         } else {
-            Ok(self.raw.iter().map(|r| Value::from(r.clone())).collect())
+            Ok(self.raw.iter().cloned().map(Value::from).collect())
         }
     }
 
@@ -336,9 +336,18 @@ pub mod go {
 
     impl ValueParse for Point {
         fn parse(raw: &[u8]) -> Result<Value> {
+            fn coord(v: u8) -> Result<usize> {
+                let c = match v as char {
+                    'a'...'z' => (v - 'a' as u8) as usize,
+                    'A'...'Z' => (v - 'A' as u8) as usize + 26,
+                    _ => return Err(Error::ValueError)
+                };
+                Ok(c)
+            }
             if raw.len() == 2 {
-                Ok(From::from(Point((raw[0] - ('a' as u8)) as usize,
-                                    (raw[1] - ('a' as u8)) as usize)))
+                let col = try!(coord(raw[0]));
+                let row = try!(coord(raw[1]));
+                Ok(From::from(Point(col, row)))
             } else {
                 Err(Error::ValueError)
             }
