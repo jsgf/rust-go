@@ -5,6 +5,8 @@ use std::result;
 
 use super::{Result, Error};
 
+use ::stone::Stone;
+
 #[derive(Debug, Clone, Hash)]
 pub struct Property {
     id: String,
@@ -38,6 +40,14 @@ impl Property {
             fold_res(self.raw.iter().map(|r| parse(r)))
         } else {
             Ok(self.raw.iter().map(|r| Value::from(r.clone())).collect())
+        }
+    }
+
+    pub fn value(&self) -> Result<Value> {
+        let v = try!(self.values());
+        match v.into_iter().next() {
+            None => Err(Error::ValueError),
+            Some(v) => Ok(v),
         }
     }
 
@@ -77,6 +87,36 @@ pub enum Value {
 
     Compose(Box<Value>, Box<Value>),
     Raw(Vec<u8>),
+}
+
+impl Value {
+    pub fn number(&self) -> Option<&Number> {
+        if let &Value::Number(ref n) = self { Some(n) } else { None }
+    }
+
+    pub fn real(&self) -> Option<&Real> {
+        if let &Value::Real(ref n) = self { Some(n) } else { None }
+    }
+
+    pub fn double(&self) -> Option<&Double> {
+        if let &Value::Double(ref n) = self { Some(n) } else { None }
+    }
+
+    pub fn color(&self) -> Option<&Color> {
+        if let &Value::Color(ref n) = self { Some(n) } else { None }
+    }
+
+    pub fn simpletext(&self) -> Option<&SimpleText> {
+        if let &Value::SimpleText(ref n) = self { Some(n) } else { None }
+    }
+
+    pub fn text(&self) -> Option<&Text> {
+        if let &Value::Text(ref n) = self { Some(n) } else { None }
+    }
+
+    pub fn gomove(&self) -> Option<&go::Move> {
+        if let &Value::GoMove(ref n) = self { Some(n) } else { None }
+    }
 }
 
 impl From<Number> for Value {
@@ -140,6 +180,14 @@ impl ValueParse for Number {
     }
 }
 
+impl<'a> Into<u32> for &'a Number {
+    fn into(self) -> u32 { self.0 }
+}
+
+impl<'a> Into<usize> for &'a Number {
+    fn into(self) -> usize { self.0 as usize }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub struct Real(f32);
 
@@ -150,6 +198,10 @@ impl ValueParse for Real {
             Err(_) => Err(Error::ValueError),
         }
     }
+}
+
+impl<'a> Into<f32> for &'a Real {
+    fn into(self) -> f32 { self.0 }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
@@ -184,6 +236,15 @@ impl ValueParse for Color {
     }
 }
 
+impl<'a> Into<Stone> for &'a Color {
+    fn into(self) -> Stone {
+        match self {
+            &Color::Black => Stone::Black,
+            &Color::White => Stone::White,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct SimpleText(String);
 
@@ -201,6 +262,15 @@ impl ValueParse for SimpleText {
         Ok(Value::from(SimpleText(s)))
     }
 }
+
+impl<'a> Into<&'a str> for &'a SimpleText {
+    fn into(self) -> &'a str { self.0.as_ref() }
+}
+
+impl<'a> Into<String> for &'a SimpleText {
+    fn into(self) -> String { self.0.clone() }
+}
+
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Text(String);
@@ -222,6 +292,14 @@ impl ValueParse for Text {
 
         Ok(Value::from(Text(s)))
     }
+}
+
+impl<'a> Into<&'a str> for &'a Text {
+    fn into(self) -> &'a str { self.0.as_ref() }
+}
+
+impl<'a> Into<String> for &'a Text {
+    fn into(self) -> String { self.0.clone() }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -246,8 +324,10 @@ impl<L, R> ValueParse for Compose<L, R>
 }
 
 pub mod go {
+    use ::location::Location;
+
     #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-    pub struct Point(u32, u32);
+    pub struct Point(usize, usize);
     pub type Move = Point;
     pub type Stone = Point;
 
@@ -257,12 +337,16 @@ pub mod go {
     impl ValueParse for Point {
         fn parse(raw: &[u8]) -> Result<Value> {
             if raw.len() == 2 {
-                Ok(From::from(Point((raw[0] - ('a' as u8)) as u32,
-                                    (raw[1] - ('a' as u8)) as u32)))
+                Ok(From::from(Point((raw[0] - ('a' as u8)) as usize,
+                                    (raw[1] - ('a' as u8)) as usize)))
             } else {
                 Err(Error::ValueError)
             }
         }
+    }
+
+    impl<'a> Into<Location> for &'a Point {
+        fn into(self) -> Location { Location::new(self.0, self.1) }
     }
 }
 
@@ -280,12 +364,12 @@ lazy_static!{
             Detail("AR", "Arrow", None, false, Compose::<go::Point, go::Point>::parse /* list of composed point ':' point */),
             Detail("AS", "Who adds stones", None, false, SimpleText::parse /* simpletext */),
             Detail("AW", "Add White", Setup, false, go::Stone::parse /* list of stone */),
-            Detail("B", "Black", Move, false, go::Move::parse /* move */),
+            Detail("B",  "Black", Move, false, go::Move::parse /* move */),
             Detail("BL", "Black time left", Move, false, Real::parse /* real */),
             Detail("BM", "Bad move", Move, false, Double::parse /* double */),
             Detail("BR", "Black rank", GameInfo, false, SimpleText::parse /* simpletext */),
             Detail("BT", "Black team", GameInfo, false, SimpleText::parse /* simpletext */),
-            Detail("C", "Comment", None, false, Text::parse /* text */),
+            Detail("C",  "Comment", None, false, Text::parse /* text */),
             Detail("CA", "Charset", Root, false, SimpleText::parse /* simpletext */),
             Detail("CP", "Copyright", GameInfo, false, SimpleText::parse /* simpletext */),
             Detail("CR", "Circle", None, false, go::Point::parse /* list of point */),
@@ -312,7 +396,7 @@ lazy_static!{
             Detail("LN", "Line", None, false, Compose::<go::Point, go::Point>::parse /* list of composed point ':' point */),
             Detail("MA", "Mark", None, false, go::Point::parse /* list of point */),
             Detail("MN", "Set move number", Move, false, Number::parse /* number */),
-            Detail("N", "Nodename", None, false, SimpleText::parse /* simpletext */),
+            Detail("N",  "Nodename", None, false, SimpleText::parse /* simpletext */),
             Detail("OB", "OtStones Black", Move, false, Number::parse /* number */),
             Detail("ON", "Opening", GameInfo, false, SimpleText::parse /* simpletext */),
             Detail("OT", "Overtime", GameInfo, false, SimpleText::parse /* simpletext */),
@@ -331,7 +415,7 @@ lazy_static!{
             Detail("SQ", "Square", None, false, go::Point::parse /* list of point */),
             Detail("ST", "Style", Root, false, Number::parse /* number (range: 0-3) */),
             Detail("SU", "Setup type", GameInfo, false, SimpleText::parse /* simpletext */),
-            Detail("SZ", "Size", Root, false, Nil::parse /* (number | composed number ':' number) */),
+            Detail("SZ", "Size", Root, false, Number::parse /* (number | composed number ':' number) */),
             Detail("TB", "Territory Black", None, false, go::Point::parse /* elist of point */),
             Detail("TE", "Tesuji", Move, false, Double::parse /* double */),
             Detail("TM", "Timelimit", GameInfo, false, Real::parse /* real */),
@@ -339,9 +423,9 @@ lazy_static!{
             Detail("TW", "Territory White", None, false, go::Point::parse /* elist of point */),
             Detail("UC", "Unclear pos", None, false, Double::parse /* double */),
             Detail("US", "User", GameInfo, false, SimpleText::parse /* simpletext */),
-            Detail("V", "Value", None, false, Real::parse /* real */),
+            Detail("V",  "Value", None, false, Real::parse /* real */),
             Detail("VW", "View", None, true, go::Point::parse /* elist of point */),
-            Detail("W", "White", Move, false, go::Move::parse /* move */),
+            Detail("W",  "White", Move, false, go::Move::parse /* move */),
             Detail("WL", "White time left", Move, false, Real::parse /* real */),
             Detail("WR", "White rank", GameInfo, false, SimpleText::parse /* simpletext */),
             Detail("WT", "White team", GameInfo, false, SimpleText::parse /* simpletext */),
