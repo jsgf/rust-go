@@ -1,5 +1,6 @@
 use std::collections::hash_set::{self, HashSet};
 use std::iter::FromIterator;
+use std::fmt::{self, Display};
 
 use location::Location;
 use stone::Stone;
@@ -82,6 +83,16 @@ impl Group {
         } else {
             None
         }
+    }
+}
+
+impl Display for Group {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        try!(write!(fmt, "{} [ ", self.colour));
+        for l in &self.group {
+            try!(write!(fmt, "{} ", l))
+        }
+        write!(fmt, "]")
     }
 }
 

@@ -1,4 +1,5 @@
 use std::ops::Not;
+use std::fmt::{self, Display};
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
 pub enum Stone {
@@ -24,4 +25,10 @@ impl<'a> Not for &'a Stone {
 
 impl AsRef<Stone> for Stone {
     fn as_ref(&self) -> &Self { self }
+}
+
+impl Display for Stone {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{:?}", self)
+    }
 }
