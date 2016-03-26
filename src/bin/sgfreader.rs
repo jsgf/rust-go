@@ -5,7 +5,7 @@ use std::io::Read;
 use std::env;
 
 use go::sgf;
-use go::sgf::property::{Value, Number};
+use go::sgf::property::{Value};
 use go::board::Board;
 use go::stone::Stone;
 use go::location::Location;
@@ -44,12 +44,34 @@ fn main() {
 
     let mut board = Board::new_with_size(sz);
 
+    let mut movenum = 1;
     while node.movenode() {
-        if let Some(p) = node.prop("B").map(|p| p.value().unwrap()).map(Location::from) {
-            let _ = board.add(p, Stone::Black);
+        for &(p, c) in &[("B", Stone::Black), ("W", Stone::White)] {
+            let p = node.prop(p).and_then(|p| p.value().ok());
+            let m: Option<Location> = p.and_then(|v| v.gomove().map(Into::into));
+            if let Some(loc) = m {
+                let loc = Location::new(loc.col(), sz - 1 - loc.row());
+                println!("Move {}: {:?} {}", movenum, c, loc);
+                movenum += 1;
+                if !board.play(loc, c) {
+                    println!("bad play: {} {:?}", loc, c)
+                } else {
+                    println!("{}", board);
+
+                    for g in board.groups::<Vec<_>>(c) {
+                        print!("{:?} group: {} liberties: [", c, g);
+                        for l in board.liberties::<Vec<_>>(&g) {
+                            print!(" {}", l)
+                        }
+                        println!(" ]");
+                    }
+                }
+            }
         }
-        if let Some(p) = node.prop("W").map(|p| p.value().unwrap()).map(Location::from) {
-            let _ = board.add(p, Stone::White);
-        }
+
+        if node.len() == 0 { break }
+        node = &node[0];
     }
+
+    println!("Board:\n{}", board);
 }
