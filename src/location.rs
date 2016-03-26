@@ -37,7 +37,12 @@ impl<'a> From<&'a (usize, usize)> for Location {
 
 impl Display for Location {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "{}{}", (self.col as u8 + 'A' as u8) as char, self.row + 1)
+        let col = match self.col {
+            c@0...7 => (c as u8 + 'A' as u8) as char,
+            c@8...24 => (c as u8 - 8 + 'J' as u8) as char,
+            _ => '#',
+        };
+        write!(fmt, "{}{}", col, self.row + 1)
     }
 }
 
@@ -50,9 +55,12 @@ impl FromStr for Location {
 
         let mut si = s.chars();
 
+        // Letters don't use 'i/I' as a letter, presumably to avoid confusion with '1'
         let col = match si.next() {
-            Some(c@'A'...'S') | Some(c@'a'...'s') =>
+            Some(c@'A'...'H') | Some(c@'a'...'h') =>
                 c.to_lowercase().next().unwrap() as usize - 'a' as usize,
+            Some(c@'J'...'T') | Some(c@'j'...'t') =>
+                c.to_lowercase().next().unwrap() as usize - 'j' as usize + 8,
             _ => return Err("bad col"),
         };
 
@@ -161,13 +169,17 @@ mod tests {
 
     #[test] fn parseloc() {
         assert_eq!(FromStr::from_str("a1"), Ok(Location::new(0, 0)));
-        assert_eq!(FromStr::from_str("s1"), Ok(Location::new(18, 0)));
+        assert_eq!(FromStr::from_str("h1"), Ok(Location::new(7, 0)));
+        assert_eq!(FromStr::from_str("j1"), Ok(Location::new(8, 0)));
+        assert_eq!(FromStr::from_str("t1"), Ok(Location::new(18, 0)));
         assert_eq!(FromStr::from_str("a19"), Ok(Location::new(0, 18)));
-        assert_eq!(FromStr::from_str("s19"), Ok(Location::new(18, 18)));
+        assert_eq!(FromStr::from_str("t19"), Ok(Location::new(18, 18)));
 
         assert_eq!(FromStr::from_str("A1"), Ok(Location::new(0, 0)));
-        assert_eq!(FromStr::from_str("S1"), Ok(Location::new(18, 0)));
+        assert_eq!(FromStr::from_str("H1"), Ok(Location::new(7, 0)));
+        assert_eq!(FromStr::from_str("J1"), Ok(Location::new(8, 0)));
+        assert_eq!(FromStr::from_str("T1"), Ok(Location::new(18, 0)));
         assert_eq!(FromStr::from_str("A19"), Ok(Location::new(0, 18)));
-        assert_eq!(FromStr::from_str("S19"), Ok(Location::new(18, 18)));
+        assert_eq!(FromStr::from_str("T19"), Ok(Location::new(18, 18)));
     }
 }
