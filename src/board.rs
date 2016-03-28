@@ -179,7 +179,7 @@ impl FromStr for Board {
 
         for (rnum, row) in layout.into_iter().enumerate() {
             for (cnum, stone) in row.into_iter().enumerate() {
-                let loc = Location::from((cnum, sz - rnum));
+                let loc = Location::from((cnum, sz - 1 - rnum));
 
                 if let Some(s) = stone {
                     let _ = board.add(loc, s);
@@ -220,7 +220,7 @@ mod tests {
     use stone::Stone::{Black, White};
 
     #[test] fn fromstr() {
-        let b = Board::from_str("
+        let b = Board::from_str("\
         . . . # O O
         . . . # # O
         . . . . O #
