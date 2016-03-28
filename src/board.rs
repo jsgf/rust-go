@@ -280,4 +280,20 @@ mod tests {
 ");
 
     }
+
+    #[test] fn play2() {
+        let mut b = Board::from_str("\
+. . .
+. # O
+. . #
+").expect("OK");
+        println!("Board:\n{}", b);
+        assert!(b.play(Location::new(2,2), White));
+        println!("After:\n{}", b);
+        assert_eq!(format!("{}", b), "\
+. . O \n\
+. # O \n\
+. . # \n\
+");
+    }
 }
