@@ -18,7 +18,7 @@ fn main() {
 
     let sgfcoll = sgf::parser(&txt[..]).expect("parse");
     let mut node = &sgfcoll[0];
-    let mut sz = None;
+    let mut sz = 19;
 
     while !node.movenode() {
         println!("root {:?} setup {:?} move {:?}", node.rootnode(), node.setupnode(), node.movenode());
@@ -27,20 +27,14 @@ fn main() {
             println!("{}: {:?}", v.id(), v.values())
         }
 
-        sz = match &node["SZ"].values().unwrap()[0] {
-            &Value::Number(ref n) => Some(n.into()),
-            x => { println!("bad sz {:?}", x); None },
+        sz = match node.prop("SZ").and_then(|p| p.value().ok()) {
+            Some(Value::Number(ref n)) => n.into(),
+            _ => 19,
         };
 
+        if node.len() == 0 { break }
         node = &node[0];
     }
-
-    if sz.is_none() {
-        println!("no size");
-        return;
-    }
-
-    let sz = sz.unwrap();
 
     let mut board = Board::new_with_size(sz);
 
