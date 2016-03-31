@@ -10,3 +10,6 @@ name = "sgfreader"
 [dependencies]
 nom = "1.2"
 lazy_static = "0.1"
+
+[profile.release]
+debug = true
