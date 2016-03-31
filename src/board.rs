@@ -63,7 +63,11 @@ impl Board {
 
         let libset: HashSet<Location> = iter::once(loc).cloned().collect();
 
-        GroupIterator::new(self.points.iter().map(|(l, s)| (*l, *s)), s)
+        let points = self.points.iter()
+            .filter(|&(_, c)| *c == s)
+            .map(|(l, c)| (*l, *c));
+        GroupIterator::new(points)
+                .filter(|g| g.colour() == s)
                 .filter(|g| self.liberties::<HashSet<_>>(g) == libset)
                 .flat_map(|g| g.locations().cloned().collect::<Vec<_>>())
                 .collect()
@@ -84,33 +88,44 @@ impl Board {
         if !self.validloc(loc) { return false }
         if self.get(loc).is_some() { return false }
 
-        // find opposite coloured stones killed and remove them
-        let dead: Vec<_> = self.killed(!s, loc);
-        for d in dead {
-            let ds = self.points.remove(&d);
-            assert_eq!(ds, Some(!s));
+        // Play the stone
+        let ps = self.add(loc, s);
+        assert!(ps.is_none());
+
+        // get resulting groups for each colour
+        let (same, opposite): (Vec<_>, Vec<_>) = {
+                let points = self.points.iter()
+                    .map(|(l, c)| (*l, *c));
+
+                GroupIterator::new(points)
+                    .partition(|g| g.colour() == s)
+        };
+
+        // find opposite coloured groups killed and remove them
+        for g in &opposite {
+            let lib: One<_> = self.liberties(g);
+            if lib.is_empty() {
+                for d in g.locations() {
+                    let ds = self.points.remove(&d);
+                    assert_eq!(ds, Some(!s));
+                }
+            }
         }
 
-        // place stone, then see if that was a suicide move
-        let ps = self.add(loc, s);
-        assert_eq!(ps, None);
+        // See if same-coloured group containing loc is now dead
+        for g in &same {
+            if !g.contains(loc) { continue }
 
-        let dead: One<_> =
-            GroupIterator::new(self.points.iter().map(|(l, s)| (*l, *s)), s)
-                .filter(|g| g.contains(loc))
-                .filter(|g| self.liberties::<One<_>>(g).is_empty())
-                .collect();
-
-        match dead.into() {
-            Some(dead) => {
-                for d in dead.locations() {
+            let lib: One<_> = self.liberties(g);
+            if lib.is_empty() {
+                for d in g.locations() {
                     let ds = self.points.remove(&d);
                     assert_eq!(ds, Some(s));
-                };
-                false
-            },
-            None => true,
+                }
+            }
         }
+
+        true
     }
 
     pub fn remove(&mut self, loc: &Location) -> Option<Stone> {
@@ -128,7 +143,10 @@ impl Board {
     pub fn groups<GO>(&self, colour: Stone) -> GO
         where GO: FromIterator<Group>
     {
-        Group::groups(self.points.iter().map(|(l, s)| (*l, *s)), colour)
+        let points = self.points.iter()
+            .filter(|&(_, c)| *c == colour)
+            .map(|(l, c)| (*l, *c));
+        Group::groups(points)
     }
 
     pub fn liberties<Out>(&self, group: &Group) -> Out

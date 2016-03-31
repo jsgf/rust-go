@@ -1,9 +1,11 @@
 use std::collections::hash_set::{self, HashSet};
+use std::collections::hash_map::HashMap;
 use std::iter::FromIterator;
 use std::fmt::{self, Display};
 
 use location::Location;
 use stone::Stone;
+use accum::Accum;
 
 #[derive(Debug, Clone)]
 pub struct Group {
@@ -32,11 +34,11 @@ impl Group {
             .collect()
     }
 
-    pub fn groups<SI, GO>(s: SI, colour: Stone) -> GO
+    pub fn groups<SI, GO>(s: SI) -> GO
         where SI: IntoIterator<Item=(Location, Stone)>,
               GO: FromIterator<Group>
     {
-        GroupIterator::new(s, colour).collect()
+        GroupIterator::new(s).collect()
     }
 
     pub fn has<L>(&self, stone: Stone, loc: L) -> bool
@@ -113,20 +115,17 @@ impl AsRef<HashSet<Location>> for Group {
 }
 
 pub struct GroupIterator {
-    stones: HashSet<Location>,
-    colour: Stone,
+    stones: HashMap<Location, Stone>,
 }
 
 impl GroupIterator {
-    pub fn new<SI>(s: SI, colour: Stone) -> GroupIterator
+    pub fn new<SI>(s: SI) -> GroupIterator
         where SI: IntoIterator<Item=(Location, Stone)>
     {
         GroupIterator {
-            stones: s.into_iter()
-                        .filter(|&(_, c)| c == colour)
-                        .map(|(l, _)| l)
-                        .collect(),
-            colour: colour,
+            stones: s.accum(HashMap::new(), |mut map, (l, stone)| {
+                let _ = map.insert(l, stone);
+            }),
         }
     }
 }
@@ -137,18 +136,26 @@ impl Iterator for GroupIterator {
     fn next(&mut self) -> Option<Group> {
         if self.stones.is_empty() { return None }
         // init group with first stone
+        let mut colour = None;
         let mut g: HashSet<Location> =
-            self.stones.iter().take(1).cloned().collect();
+            self.stones.iter()
+                .take(1)
+                .inspect(|&(_, s)| colour = Some(*s))
+                .map(|(l, _)| l)
+                .cloned().collect();
+
+        let colour = colour.expect("colourless stone?");
 
         loop {
             // remove group from candidates
-            self.stones = &self.stones - &g;
+            for s in &g {
+                let _ = self.stones.remove(s);
+            }
 
             // n is fringe of new neighbour locations
             let n: HashSet<Location> =
                 g.iter()
-                    .flat_map(|l| l.neighbours())
-                    .collect::<HashSet<Location>>().intersection(&self.stones).cloned()
+                    .flat_map(|l| l.neighbours().filter(|l| self.stones.get(l) == Some(&colour)))
                     .collect();
 
             if n.is_empty() { break }
@@ -157,7 +164,7 @@ impl Iterator for GroupIterator {
             g = &g | &n;
         }
 
-        Some(Group { colour: self.colour, group: g })
+        Some(Group { colour: colour, group: g })
     }
 }
 
@@ -172,18 +179,21 @@ mod tests {
         let stones = [((1, 1), Black)];
         let locs = stones.iter()
                         .map(|&(loc, col)| (Location::from(loc), col));
-        let gs: Vec<_> = Group::groups(locs, Black);
+        let gs: Vec<_> = Group::groups(locs);
 
-        assert_eq!(gs.iter().map(|g| g.locations().collect::<Vec<_>>()).collect::<Vec<_>>(),
-                    vec![vec![&Location::from((1,1))]])
+        for g in gs {
+            assert_eq!(g.colour(), Black);
+            assert_eq!(g.locations().collect::<Vec<_>>(), vec![&Location::from((1,1))]);
+        }
     }
 
     #[test] fn single() {
         let stones = [((1, 1), Black), ((1, 2), Black), ((1, 3), White),
                       ((2, 1), White), ((2, 2), Black), ((2, 3), Black),];
-        let locs = stones.iter()
+        let locs = stones.into_iter()
+                        .filter(|&&(_, c)| c == Black)
                         .map(|&(loc, col)| (Location::from(loc), col));
-        let gs: Vec<_> = Group::groups(locs, Black);
+        let gs: Vec<_> = Group::groups(locs);
 
         assert_eq!(gs.len(), 1);
 
@@ -199,7 +209,9 @@ mod tests {
                       ((2, 1), White), ((2, 2), Black), ((2, 3), Black),];
         let locs = stones.iter()
                         .map(|&(loc, col)| (Location::from(loc), col));
-        let gs: Vec<_> = Group::groups(locs, Black);
+        let gs: Vec<_> = Group::groups::<_, Vec<_>>(locs).into_iter()
+            .filter(|g| g.colour() == Black)
+            .collect();
 
         assert_eq!(gs.len(), 1);
 
