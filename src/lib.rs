@@ -8,3 +8,4 @@ pub mod group;
 pub mod sgf;
 
 mod one;
+mod accum;

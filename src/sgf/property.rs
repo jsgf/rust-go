@@ -365,6 +365,8 @@ struct Detail(&'static str, &'static str, Type, bool, fn (&[u8]) -> Result<Value
 lazy_static!{
     static ref DETAILS: HashMap<&'static str, Detail> = {
         use self::Type::*;
+        use ::accum::Accum;
+
         vec![
             Detail("AB", "Add Black", Setup, false, go::Stone::parse /* list of stone */),
             Detail("AE", "Add Empty", Setup, false, go::Point::parse /* list of point */),
@@ -438,6 +440,6 @@ lazy_static!{
             Detail("WL", "White time left", Move, false, Real::parse /* real */),
             Detail("WR", "White rank", GameInfo, false, SimpleText::parse /* simpletext */),
             Detail("WT", "White team", GameInfo, false, SimpleText::parse /* simpletext */),
-        ].into_iter().fold(HashMap::new(), |mut s, d| { s.insert(d.0, d); s })
+        ].into_iter().accum(HashMap::new(), |mut s, d| { let _ = s.insert(d.0, d); })
     };
 }
