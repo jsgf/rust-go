@@ -3,6 +3,8 @@ use std::collections::hash_map::HashMap;
 use std::iter::FromIterator;
 use std::fmt::{self, Display};
 
+use bit_set::BitSet;
+
 use location::Location;
 use stone::Stone;
 use accum::Accum;
@@ -10,16 +12,16 @@ use accum::Accum;
 #[derive(Debug, Clone)]
 pub struct Group {
     colour: Stone,
-    group: HashSet<Location>,
+    group: BitSet,
 }
 
 impl Group {
     pub fn new(stone: Stone, loc: Location) -> Group {
         let mut g = Group {
             colour: stone,
-            group: HashSet::new()
+            group: BitSet::new()
         };
-        g.group.insert(loc);
+        g.group.insert(loc.into());
 
         g
     }
@@ -27,10 +29,11 @@ impl Group {
     /// Return set of locations adjacent to group stones, including internal
     pub fn neighbours(&self) -> HashSet<Location> {
         self.group.iter()
+            .map(|b| Location::from(b))
             .flat_map(|l| l.neighbours())
-            .collect::<HashSet<Location>>()
+            .map(|l| l.into())
+            .collect::<BitSet>()
             .difference(&self.group)
-            .cloned()
             .collect()
     }
 

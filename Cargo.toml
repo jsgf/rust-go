@@ -10,6 +10,8 @@ name = "sgfreader"
 [dependencies]
 nom = "1.2"
 lazy_static = "0.1"
+bit-set = "0.4.0"
+bit-vec = "0.4.3"
 
 [profile.release]
 debug = true

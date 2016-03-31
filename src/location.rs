@@ -23,6 +23,25 @@ impl Location {
     }
 }
 
+// Convert into bitset
+impl Into<usize> for Location {
+    fn into(self) -> usize { self.col * 100 + self.row }
+}
+
+impl<'a> Into<usize> for &'a Location {
+    fn into(self) -> usize { self.col * 100 + self.row }
+}
+
+// From bitset
+impl From<usize> for Location {
+    fn from(bit: usize) -> Location {
+        Location {
+            col: bit / 100,
+            row: bit % 100,
+        }
+    }
+}
+
 impl From<(usize, usize)> for Location {
     fn from((c, r): (usize, usize)) -> Self {
         Location::new(c, r)
