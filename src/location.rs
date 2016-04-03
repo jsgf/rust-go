@@ -1,6 +1,8 @@
 use std::str::FromStr;
 use std::fmt::{self, Display};
 
+use bit_set::bitidx::BitIdx;
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Location { row: usize, col: usize }
 
@@ -24,17 +26,17 @@ impl Location {
 }
 
 // Convert into bitset
-impl Into<usize> for Location {
-    fn into(self) -> usize { self.col * 100 + self.row }
+impl Into<BitIdx> for Location {
+    fn into(self) -> BitIdx { BitIdx(self.col * 100 + self.row) }
 }
 
-impl<'a> Into<usize> for &'a Location {
-    fn into(self) -> usize { self.col * 100 + self.row }
+impl<'a> Into<BitIdx> for &'a Location {
+    fn into(self) -> BitIdx { BitIdx(self.col * 100 + self.row) }
 }
 
 // From bitset
-impl From<usize> for Location {
-    fn from(bit: usize) -> Location {
+impl From<BitIdx> for Location {
+    fn from(BitIdx(bit): BitIdx) -> Location {
         Location {
             col: bit / 100,
             row: bit % 100,

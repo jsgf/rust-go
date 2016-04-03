@@ -1,16 +1,17 @@
-use std::collections::{HashSet};
 use std::collections::hash_map::{HashMap};
-use std::iter::{self, FromIterator};
+use std::iter::FromIterator;
 use std::cmp::max;
 use std::str::FromStr;
 use std::fmt::{self, Display};
+
+use bit_set::bitidx::BitSet;
 
 use stone::Stone;
 use group::{Group, GroupIterator};
 use location::{Location, AllLocations};
 use one::One;
 
-pub type PointSet = HashSet<Location>;
+pub type PointSet = BitSet<Location>;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Point(Location, Option<Stone>);
@@ -52,25 +53,6 @@ impl Board {
         let s = s.as_ref();
         assert!(self.validloc(loc));
         self.points.insert(*loc, *s)
-    }
-
-    // return locations of colour `s` who are part of groups whose last liberty is `loc`
-    fn killed<L, S, Out>(&self, s: S, loc: L) -> Out
-        where L: AsRef<Location>, S: AsRef<Stone>, Out: FromIterator<Location>
-    {
-        let loc = loc.as_ref();
-        let s = *s.as_ref();
-
-        let libset: HashSet<Location> = iter::once(loc).cloned().collect();
-
-        let points = self.points.iter()
-            .filter(|&(_, c)| *c == s)
-            .map(|(l, c)| (*l, *c));
-        GroupIterator::new(points)
-                .filter(|g| g.colour() == s)
-                .filter(|g| self.liberties::<HashSet<_>>(g) == libset)
-                .flat_map(|g| g.locations().cloned().collect::<Vec<_>>())
-                .collect()
     }
 
     pub fn play<L, S>(&mut self, loc: L, s: S) -> bool
@@ -155,7 +137,7 @@ impl Board {
         group.neighbours().iter()
             .filter(|l| self.validloc(l))
             .filter(|l| self.get(l).is_none())
-            .cloned().collect()
+            .collect()
     }
 }
 

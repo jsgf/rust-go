@@ -1,9 +1,8 @@
-use std::collections::hash_set::{self, HashSet};
 use std::collections::hash_map::HashMap;
 use std::iter::FromIterator;
 use std::fmt::{self, Display};
 
-use bit_set::BitSet;
+use bit_set::bitidx::{self, BitSet};
 
 use location::Location;
 use stone::Stone;
@@ -12,7 +11,7 @@ use accum::Accum;
 #[derive(Debug, Clone)]
 pub struct Group {
     colour: Stone,
-    group: BitSet,
+    group: BitSet<Location>,
 }
 
 impl Group {
@@ -27,12 +26,12 @@ impl Group {
     }
 
     /// Return set of locations adjacent to group stones, including internal
-    pub fn neighbours(&self) -> HashSet<Location> {
+    pub fn neighbours(&self) -> BitSet<Location> {
         self.group.iter()
             .map(|b| Location::from(b))
             .flat_map(|l| l.neighbours())
             .map(|l| l.into())
-            .collect::<BitSet>()
+            .collect::<BitSet<_>>()
             .difference(&self.group)
             .collect()
     }
@@ -48,12 +47,12 @@ impl Group {
         where L: AsRef<Location>
     {
         let loc = loc.as_ref();
-        self.colour == stone && self.group.contains(loc)
+        self.colour == stone && self.group.contains(*loc)
     }
 
     pub fn colour(&self) -> Stone { self.colour }
 
-    pub fn locations(&self) -> hash_set::Iter<Location> {
+    pub fn locations(&self) -> bitidx::Iter<Location, u32> {
         self.group.iter()
     }
 
@@ -70,7 +69,7 @@ impl Group {
     {
         let loc = loc.as_ref();
 
-        self.group.contains(loc)
+        self.group.contains(*loc)
     }
 
     pub fn groupadjacent<G>(&self, other: G) -> bool
@@ -91,7 +90,7 @@ impl Group {
         if self.colour == other.colour {
             Some(Group {
                 colour: self.colour,
-                group: self.group.union(&other.group).cloned().collect()
+                group: self.group.union(&other.group).collect()
             })
         } else {
             None
@@ -113,8 +112,8 @@ impl AsRef<Group> for Group {
     fn as_ref(&self) -> &Self { self }
 }
 
-impl AsRef<HashSet<Location>> for Group {
-    fn as_ref(&self) -> &HashSet<Location> { &self.group }
+impl AsRef<BitSet<Location>> for Group {
+    fn as_ref(&self) -> &BitSet<Location> { &self.group }
 }
 
 pub struct GroupIterator {
@@ -140,7 +139,7 @@ impl Iterator for GroupIterator {
         if self.stones.is_empty() { return None }
         // init group with first stone
         let mut colour = None;
-        let mut g: HashSet<Location> =
+        let mut g: BitSet<_> =
             self.stones.iter()
                 .take(1)
                 .inspect(|&(_, s)| colour = Some(*s))
@@ -152,11 +151,11 @@ impl Iterator for GroupIterator {
         loop {
             // remove group from candidates
             for s in &g {
-                let _ = self.stones.remove(s);
+                let _ = self.stones.remove(&s);
             }
 
             // n is fringe of new neighbour locations
-            let n: HashSet<Location> =
+            let n: BitSet<_> =
                 g.iter()
                     .flat_map(|l| l.neighbours().filter(|l| self.stones.get(l) == Some(&colour)))
                     .collect();
@@ -164,7 +163,7 @@ impl Iterator for GroupIterator {
             if n.is_empty() { break }
 
             // add fringe
-            g = &g | &n;
+            g.union_with(&n);
         }
 
         Some(Group { colour: colour, group: g })
@@ -173,7 +172,7 @@ impl Iterator for GroupIterator {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
+    use bit_set::bitidx::BitSet;
     use super::Group;
     use location::Location;
     use stone::Stone::*;
@@ -186,7 +185,7 @@ mod tests {
 
         for g in gs {
             assert_eq!(g.colour(), Black);
-            assert_eq!(g.locations().collect::<Vec<_>>(), vec![&Location::from((1,1))]);
+            assert_eq!(g.locations().collect::<Vec<_>>(), vec![Location::from((1,1))]);
         }
     }
 
@@ -204,7 +203,7 @@ mod tests {
             .iter().map(Location::from).collect();
 
         assert_eq!(gs[0].colour(), Black);
-        assert_eq!(gs[0].locations().cloned().collect::<HashSet<_>>(), expect);
+        assert_eq!(gs[0].locations().collect::<BitSet<_>>(), expect);
     }
 
     #[test] fn neighbours() {
@@ -220,7 +219,7 @@ mod tests {
 
         let neighbours = gs[0].neighbours();
 
-        assert!(neighbours.is_disjoint(&gs[0].locations().cloned().collect()));
+        assert!(neighbours.is_disjoint(&gs[0].locations().collect()));
 
         let expect = [
             (0,1), (0,2), (1,0), (1,3), (2,1), (2,4), (3,2), (3,3)

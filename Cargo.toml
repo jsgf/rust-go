@@ -10,7 +10,7 @@ name = "sgfreader"
 [dependencies]
 nom = "1.2"
 lazy_static = "0.1"
-bit-set = "0.4.0"
+bit-set = { git = "https://github.com/jsgf/bit-set.git" }
 bit-vec = "0.4.3"
 
 [profile.release]
